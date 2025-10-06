@@ -19,6 +19,9 @@ import {
   transactionHelpers,
   orderQueries,
 } from "./queries";
+import { db } from "./db";
+import { products } from "@shared/schema";
+import { eq } from "drizzle-orm"; // Add this import if not present
 
 export interface IStorage {
   // User operations
@@ -164,6 +167,7 @@ export class DatabaseStorage implements IStorage {
           isActive: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
+          expiryDate: "2025-12-31", // <-- Add this line
         },
       ];
     }
@@ -210,6 +214,13 @@ export class DatabaseStorage implements IStorage {
   async createStockTransaction(transaction: any): Promise<StockTransaction> {
     try {
       const transactionDate = transaction.transactionDate || new Date();
+
+      if (transaction.type === "stock_in" && transaction.expiryDate) {
+        await db
+          .update(products)
+          .set({ expiryDate: transaction.expiryDate, updatedAt: new Date() })
+          .where(eq(products.id, transaction.productId));
+      }
 
       if (transaction.type === "stock_in") {
         const result = await transactionHelpers.processStockIn(
