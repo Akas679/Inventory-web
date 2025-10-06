@@ -184,6 +184,7 @@ export default function StockManagement() {
     product: Product;
     quantity: string;
     selectedUnit: string;
+    expiryDate?: string | null; // <-- Add this line
   } | null>(null);
   const [currentProductOut, setCurrentProductOut] = useState<{
     product: Product;
@@ -193,7 +194,7 @@ export default function StockManagement() {
 
   // Completed products ready for transaction
   const [completedProductsIn, setCompletedProductsIn] = useState<
-    Array<{ product: Product; quantity: string; selectedUnit: string }>
+    Array<{ product: Product; quantity: string; selectedUnit: string; expiryDate?: string | null }>
   >([]);
   const [completedProductsOut, setCompletedProductsOut] = useState<
     Array<{ product: Product; quantityOut: string; selectedUnit: string }>
@@ -326,7 +327,15 @@ export default function StockManagement() {
       currentProductIn.quantity &&
       parseFloat(currentProductIn.quantity) > 0
     ) {
-      setCompletedProductsIn((prev) => [...prev, currentProductIn]);
+      setCompletedProductsIn((prev) => [
+        ...prev,
+        {
+          product: currentProductIn.product,
+          quantity: currentProductIn.quantity,
+          selectedUnit: currentProductIn.selectedUnit,
+          expiryDate: currentProductIn.expiryDate, // <-- Add this line
+        },
+      ]);
     }
 
     setCurrentProductIn({
@@ -854,6 +863,7 @@ export default function StockManagement() {
         originalQuantity: item.quantity,
         originalUnit: item.selectedUnit,
         poNumber: poNumberInput.value,
+        expiryDate: item.expiryDate, // <-- Add this line
       }));
 
       stockInMutation.mutate(transactions);
@@ -1391,6 +1401,11 @@ export default function StockManagement() {
                         <h5 className="font-semibold text-green-900">
                           {currentProductIn.product.name}
                         </h5>
+                        {currentProductIn.product.expiryDate && (
+                          <p className="text-green-700 text-xs">
+                            Current Expiry Date: {new Date(currentProductIn.product.expiryDate).toLocaleDateString()}
+                          </p>
+                        )}
                         <p className="text-green-700">
                           Current Stock: {currentProductIn.product.currentStock}{" "}
                           {currentProductIn.product.unit}
@@ -1416,11 +1431,7 @@ export default function StockManagement() {
                           inputMode="decimal"
                           value={currentProductIn.quantity}
                           onChange={(e) => {
-                            // Allow only numbers and decimal points
-                            const value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              "",
-                            );
+                            const value = e.target.value.replace(/[^0-9.]/g, "");
                             updateCurrentProductInQuantity(value);
                           }}
                           placeholder="Enter quantity..."
@@ -1451,6 +1462,22 @@ export default function StockManagement() {
                             )}
                           </SelectContent>
                         </Select>
+                      </div>
+                      {/* Expiry Date Input */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Expiry Date
+                        </label>
+                        <input
+                          type="date"
+                          value={currentProductIn.expiryDate || ""}
+                          onChange={(e) => {
+                            setCurrentProductIn((prev) =>
+                              prev ? { ...prev, expiryDate: e.target.value } : prev
+                            );
+                          }}
+                          className="flex h-12 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-lg ring-offset-background"
+                        />
                       </div>
                     </div>
                   </div>
