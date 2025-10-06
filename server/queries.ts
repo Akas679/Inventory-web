@@ -143,25 +143,53 @@ export const userQueries = {
 export const productQueries = {
   // Get all products
   async getAll(): Promise<Product[]> {
-    return await db.select().from(products).orderBy(asc(products.name));
+    return await db.select({
+      id: products.id,
+      name: products.name,
+      unit: products.unit,
+      openingStock: products.openingStock,
+      currentStock: products.currentStock,
+      isActive: products.isActive,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt,
+      expiryDate: products.expiryDate, // <-- Add this line
+    }).from(products).orderBy(asc(products.name));
   },
 
   // Get active products only
   async getActive(): Promise<Product[]> {
-    return await db
-      .select()
-      .from(products)
-      .where(eq(products.isActive, 1))
-      .orderBy(asc(products.name));
+    return await db.select({
+      id: products.id,
+      name: products.name,
+      unit: products.unit,
+      openingStock: products.openingStock,
+      currentStock: products.currentStock,
+      isActive: products.isActive,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt,
+      expiryDate: products.expiryDate, // <-- Add this line
+    })
+    .from(products)
+    .where(eq(products.isActive, 1))
+    .orderBy(asc(products.name));
   },
 
   // Get product by ID
   async getById(id: number): Promise<Product | undefined> {
-    const result = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, id))
-      .limit(1);
+    const result = await db.select({
+      id: products.id,
+      name: products.name,
+      unit: products.unit,
+      openingStock: products.openingStock,
+      currentStock: products.currentStock,
+      isActive: products.isActive,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt,
+      expiryDate: products.expiryDate, // <-- Add this line
+    })
+    .from(products)
+    .where(eq(products.id, id))
+    .limit(1);
     return result[0];
   },
 
