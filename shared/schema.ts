@@ -46,16 +46,13 @@ export const users = pgTable("users", {
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  unit: varchar("unit", { length: 50 }).notNull(), // KG, Litre, Pieces, etc.
-  openingStock: decimal("opening_stock", { precision: 10, scale: 2 })
-    .notNull()
-    .default("0"),
-  currentStock: decimal("current_stock", { precision: 10, scale: 2 })
-    .notNull()
-    .default("0"),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  openingStock: varchar("opening_stock", { length: 50 }).notNull(),
+  currentStock: varchar("current_stock", { length: 50 }).notNull(),
   isActive: integer("is_active").notNull().default(1),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  expiryDate: date("expiry_date"), // <-- Add this line
 });
 
 // Stock transactions table
@@ -288,7 +285,17 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Product = typeof products.$inferSelect;
+export type Product = {
+  id: number;
+  name: string;
+  unit: string;
+  openingStock: string;
+  currentStock: string;
+  isActive: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  expiryDate?: string | null; // <-- Add this line
+};
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type UpdateProduct = z.infer<typeof updateProductSchema>;
 export type StockTransaction = typeof stockTransactions.$inferSelect;
