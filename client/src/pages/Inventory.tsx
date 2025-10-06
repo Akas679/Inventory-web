@@ -55,10 +55,12 @@ import { z } from "zod";
 
 const productFormSchema = insertProductSchema.extend({
   openingStock: z.string().min(1, "Opening stock is required"),
+  expiryDate: z.string().min(1, "Expiry date is required"),
 });
 
 const updateFormSchema = updateProductSchema.extend({
   openingStock: z.string().min(1, "Opening stock is required"),
+  expiryDate: z.string().min(1, "Expiry date is required"),
 });
 
 export default function Inventory() {
@@ -74,12 +76,13 @@ export default function Inventory() {
     return "Pieces";
   });
 
-    const addForm = useForm<z.infer<typeof productFormSchema>>({
+  const addForm = useForm<z.infer<typeof productFormSchema>>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: "",
       unit: "",
       openingStock: "",
+      expiryDate: "",
     },
   });
 
@@ -94,7 +97,7 @@ export default function Inventory() {
     }
   }, [isLoading, isAuthenticated, toast]);
 
-    // Load last used unit from localStorage
+  // Load last used unit from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUnit = localStorage.getItem("lastUsedUnit");
@@ -110,6 +113,7 @@ export default function Inventory() {
       name: "",
       unit: "",
       openingStock: "",
+      expiryDate: "",
     },
   });
 
@@ -237,6 +241,7 @@ export default function Inventory() {
       name: product.name,
       unit: product.unit,
       openingStock: product.openingStock,
+      expiryDate: product.expiryDate || "",
     });
   };
 
@@ -405,39 +410,38 @@ export default function Inventory() {
         />
 
         {/* Unit Field with Persistent Selection */}
-                <FormField
-                  control={addForm.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-lg">Unit</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value || lastUsedUnit}
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            setLastUsedUnit(value);
-                            localStorage.setItem("lastUsedUnit", value);
-                          }}
-                          defaultValue={lastUsedUnit}
-                        >
-                          <SelectTrigger className="h-12 text-lg">
-                            <SelectValue placeholder={lastUsedUnit} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="KG">KG</SelectItem>
-                            <SelectItem value="Grams">Grams</SelectItem>
-                            <SelectItem value="Litre">Litre</SelectItem>
-                            <SelectItem value="Millilitre">Millilitre</SelectItem>
-                            <SelectItem value="Pieces">Pieces</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+        <FormField
+          control={addForm.control}
+          name="unit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg">Unit</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value || lastUsedUnit}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setLastUsedUnit(value);
+                    localStorage.setItem("lastUsedUnit", value);
+                  }}
+                  defaultValue={lastUsedUnit}
+                >
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue placeholder={lastUsedUnit} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KG">KG</SelectItem>
+                    <SelectItem value="Grams">Grams</SelectItem>
+                    <SelectItem value="Litre">Litre</SelectItem>
+                    <SelectItem value="Millilitre">Millilitre</SelectItem>
+                    <SelectItem value="Pieces">Pieces</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Opening Quantity Field */}
         <FormField
@@ -451,6 +455,25 @@ export default function Inventory() {
                   type="number"
                   step="0.001"
                   placeholder="Enter opening quantity"
+                  {...field}
+                  className="h-12 text-lg"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Expiry Date Field */}
+        <FormField
+          control={addForm.control}
+          name="expiryDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg">Expiry Date</FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
                   {...field}
                   className="h-12 text-lg"
                 />
