@@ -26,7 +26,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string }>({ name: "", unit: "", currentStock: "", openingStock: "" });
+  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string; expiryDate: string }>({ name: "", unit: "", currentStock: "", openingStock: "", expiryDate: "" });
   const queryClient = useQueryClient();
 
   const {
@@ -39,7 +39,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
 
   // Mutation for updating product
   const updateProductMutation = useMutation({
-    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string }) => {
+    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string; expiryDate: string }) => {
       const res = await fetch(`/api/products/${editProduct?.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -256,6 +256,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                   <th className="p-3 md:p-4 border-b border-gray-200">Unit</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Current Stock</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Opening Stock</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Expiry Date</th> {/* New */}
                   <th className="p-3 md:p-4 border-b border-gray-200">Status</th>
                   <th className="p-3 md:p-4 border-b border-gray-200 text-right">Actions</th>
                 </tr>
@@ -275,6 +276,9 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                       <td className="p-3 md:p-4 border-b border-gray-100 text-gray-500">
                         {formatStock(product.openingStock)} {product.unit}
                       </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-gray-500">
+                        {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString() : "-"}
+                      </td>
                       <td className="p-3 md:p-4 border-b border-gray-100">
                         <Badge variant="secondary" className={`${stockStatus.color} text-white text-xs`}>
                           {stockStatus.label}
@@ -291,6 +295,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                               unit: product.unit,
                               currentStock: product.currentStock,
                               openingStock: product.openingStock,
+                              expiryDate: product.expiryDate || "",
                             });
                           }}
                         >
@@ -338,6 +343,13 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                 value={editForm.openingStock}
                 onChange={e => setEditForm(f => ({ ...f, openingStock: e.target.value }))}
               />
+              <Label htmlFor="edit-expiryDate">Expiry Date</Label>
+              <Input
+                id="edit-expiryDate"
+                type="date"
+                value={editForm.expiryDate}
+                onChange={e => setEditForm(f => ({ ...f, expiryDate: e.target.value }))}
+              />
             </div>
             <DialogFooter>
               <Button
@@ -347,7 +359,8 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                       name: editForm.name,
                       unit: editForm.unit,
                       openingStock: editForm.openingStock,
-                      currentStock: editForm.currentStock, // <-- Add this line
+                      currentStock: editForm.currentStock,
+                      expiryDate: editForm.expiryDate, // Add this
                     });
                   }
                 }}
