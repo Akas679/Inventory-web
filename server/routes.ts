@@ -31,7 +31,8 @@ async function verifyCaptcha(token: string): Promise<boolean> {
       'https://www.google.com/recaptcha/api/siteverify',
       null,
       {
-        params: {
+        params:
+         {
           secret: process.env.RECAPTCHA_SECRET_KEY,
           response: token
         }
@@ -427,6 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: "stock_in",
             remarks,
             poNumber,
+            expiryDate: productData.expiryDate, // <-- Add this line
             transactionDate: new Date(),
           };
 
@@ -460,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
       try {
         const userId = req.user.id;
-        const { originalQuantity, originalUnit, ...transactionBody } = req.body;
+        const { originalQuantity, originalUnit, expiryDate, ...transactionBody } = req.body; // <-- Add expiryDate here
         const transactionData = insertStockTransactionSchema.parse({
           ...transactionBody,
           userId,
@@ -472,6 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...transactionData,
           originalQuantity,
           originalUnit,
+          expiryDate, // <-- Pass expiryDate to storage
           transactionDate: new Date(),
         };
 
