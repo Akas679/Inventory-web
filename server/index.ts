@@ -62,10 +62,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
- 
-
-  // ✅ Use Render-compatible port binding
- const PORT = process.env.PORT || 5050;
+  const PORT = process.env.PORT || 5050;
 
   // ✅ Explicitly bind to 0.0.0.0 for Render compatibility
   app.listen(PORT, "0.0.0.0", () => {
