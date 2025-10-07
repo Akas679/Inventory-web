@@ -62,7 +62,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-/ ✅ Use Render-compatible port binding
+// ✅ Use Render-compatible port binding
   const PORT = Number(process.env.PORT) || 5050;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅Server is running on http://localhost:${PORT}`);
@@ -71,4 +71,5 @@ app.use((req, res, next) => {
   console.error("❌ Failed to start server:", error);
   process.exit(1);
 });
+
 
