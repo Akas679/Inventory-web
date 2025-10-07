@@ -387,6 +387,13 @@ export default function Inventory() {
           
           // 3. Submit if valid
           createProductMutation.mutate(data);
+          setIsAddDialogOpen(false); // Immediately close dialog
+          addForm.reset({
+            name: "",
+            unit: data.unit,
+            openingStock: "",
+            expiryDate: "",
+          });
         })}
         className="space-y-6"
       >
