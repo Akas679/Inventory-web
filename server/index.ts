@@ -62,13 +62,13 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const PORT = process.env.PORT || 5050;
-
-  // ✅ Explicitly bind to 0.0.0.0 for Render compatibility
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
+  // ✅ Use Render-compatible port binding
+  const PORT = Number(process.env.PORT) || 5050;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅Server is running on http://localhost:${PORT}`);
   });
 })().catch((error) => {
   console.error("❌ Failed to start server:", error);
   process.exit(1);
 });
+
