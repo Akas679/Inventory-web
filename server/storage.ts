@@ -19,14 +19,12 @@ import {
   transactionHelpers,
   orderQueries,
 } from "./queries";
-import { db } from "./db";
-import { products } from "@shared/schema";
-import { eq } from "drizzle-orm"; // Add this import if not present
 
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByIdentifier(identifier: string): Promise<User | undefined>; // Can search by username, email, or mobile number
   createUser(user: InsertUser): Promise<User>;
   updateUserRole(userId: number, role: UserRole): Promise<User>;
   updateUserRoles(userId: number, roles: UserRole[]): Promise<User>;
@@ -82,6 +80,8 @@ export class DatabaseStorage implements IStorage {
           email: "admin@inventory.com",
           firstName: "Super",
           lastName: "Admin",
+          countryCode: null,
+          mobileNumber: null,
           role: "super_admin",
           roles: ["super_admin"],
           isActive: 1,
@@ -108,6 +108,36 @@ export class DatabaseStorage implements IStorage {
           email: "admin@inventory.com",
           firstName: "Super",
           lastName: "Admin",
+          countryCode: null,
+          mobileNumber: null,
+          role: "super_admin",
+          roles: ["super_admin"],
+          isActive: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      return undefined;
+    }
+  }
+
+  async getUserByIdentifier(identifier: string): Promise<User | undefined> {
+    try {
+      return await userQueries.getByIdentifier(identifier);
+    } catch (error) {
+      console.error("Database error fetching user by identifier:", error);
+      // Return super admin user as fallback during database connection issues
+      if (identifier === "Sudhamrit") {
+        return {
+          id: 1,
+          username: "Sudhamrit",
+          password:
+            "$2b$10$K5E.zGQxQUj6VlVKvqCkUOF5M5X1H7yLdZ8GHNVpY0HZJKCyHTcBm", // Pre-hashed Sudhamrit@1234
+          email: "admin@inventory.com",
+          firstName: "Super",
+          lastName: "Admin",
+          countryCode: null,
+          mobileNumber: null,
           role: "super_admin",
           roles: ["super_admin"],
           isActive: 1,
@@ -162,12 +192,14 @@ export class DatabaseStorage implements IStorage {
           id: 1,
           name: "Test Product",
           unit: "KG",
+          storageLocation: "Dry Storage Location",
+          storageRow: "Row 1",
+          storageDeck: "Deck 1",
           openingStock: "100.00",
           currentStock: "100.00",
           isActive: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
-          expiryDate: "2025-12-31", // <-- Add this line
         },
       ];
     }
@@ -214,13 +246,6 @@ export class DatabaseStorage implements IStorage {
   async createStockTransaction(transaction: any): Promise<StockTransaction> {
     try {
       const transactionDate = transaction.transactionDate || new Date();
-
-      if (transaction.type === "stock_in" && transaction.expiryDate) {
-        await db
-          .update(products)
-          .set({ expiryDate: transaction.expiryDate, updatedAt: new Date() })
-          .where(eq(products.id, transaction.productId));
-      }
 
       if (transaction.type === "stock_in") {
         const result = await transactionHelpers.processStockIn(
