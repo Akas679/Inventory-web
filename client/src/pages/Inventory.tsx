@@ -53,14 +53,19 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+// Extend schemas to include openingStock and storage info
 const productFormSchema = insertProductSchema.extend({
   openingStock: z.string().min(1, "Opening stock is required"),
-  expiryDate: z.string().min(1, "Expiry date is required"),
+  storageLocation: z.string().min(1, "Storage location is required"),
+  storageRow: z.string().min(1, "Storage row is required"),
+  storageDeck: z.string().min(1, "Storage deck is required"),
 });
 
 const updateFormSchema = updateProductSchema.extend({
   openingStock: z.string().min(1, "Opening stock is required"),
-  expiryDate: z.string().min(1, "Expiry date is required"),
+  storageLocation: z.string().min(1, "Storage location is required"),
+  storageRow: z.string().min(1, "Storage row is required"),
+  storageDeck: z.string().min(1, "Storage deck is required"),
 });
 
 export default function Inventory() {
@@ -76,13 +81,25 @@ export default function Inventory() {
     return "Pieces";
   });
 
+  // Define storage layout: first one is Dry Storage Location (4 rows × 4 decks).
+  const storageLocations = [
+    "Dry Storage Location",
+    "Cold Storage",
+    "Freezer Storage",
+    "Overflow Storage",
+  ];
+  const rows = Array.from({ length: 4 }, (_, i) => `Row ${i + 1}`);
+  const decks = Array.from({ length: 4 }, (_, i) => `Deck ${i + 1}`);
+
   const addForm = useForm<z.infer<typeof productFormSchema>>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: "",
       unit: "",
       openingStock: "",
-      expiryDate: "",
+      storageLocation: "Dry Storage Location",
+      storageRow: rows[0],
+      storageDeck: decks[0],
     },
   });
 
@@ -113,7 +130,9 @@ export default function Inventory() {
       name: "",
       unit: "",
       openingStock: "",
-      expiryDate: "",
+      storageLocation: "Dry Storage Location",
+      storageRow: rows[0],
+      storageDeck: decks[0],
     },
   });
 
@@ -138,6 +157,9 @@ export default function Inventory() {
         name: "",
         unit: variables.unit, // Keep the last used unit
         openingStock: "",
+        storageLocation: variables.storageLocation || "Dry Storage Location",
+        storageRow: variables.storageRow || rows[0],
+        storageDeck: variables.storageDeck || decks[0],
       });
       setIsAddDialogOpen(false);
       toast({
@@ -241,7 +263,9 @@ export default function Inventory() {
       name: product.name,
       unit: product.unit,
       openingStock: product.openingStock,
-      expiryDate: product.expiryDate || "",
+      storageLocation: (product as any)?.storageLocation || "Dry Storage Location",
+      storageRow: (product as any)?.storageRow || rows[0],
+      storageDeck: (product as any)?.storageDeck || decks[0],
     });
   };
 
@@ -387,13 +411,6 @@ export default function Inventory() {
           
           // 3. Submit if valid
           createProductMutation.mutate(data);
-          setIsAddDialogOpen(false); // Immediately close dialog
-          addForm.reset({
-            name: "",
-            unit: data.unit,
-            openingStock: "",
-            expiryDate: "",
-          });
         })}
         className="space-y-6"
       >
@@ -450,6 +467,95 @@ export default function Inventory() {
           )}
         />
 
+        {/* Storage Location Fields: location, row, deck */}
+        <FormField
+          control={addForm.control}
+          name="storageLocation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg">Storage Location</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value || "Dry Storage Location"}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // reset row & deck to first when location changes
+                    addForm.setValue("storageRow", rows[0]);
+                    addForm.setValue("storageDeck", decks[0]);
+                  }}
+                  defaultValue="Dry Storage Location"
+                >
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {storageLocations.map((loc) => (
+                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={addForm.control}
+            name="storageRow"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg">Row</FormLabel>
+                <FormControl>
+                  <Select
+                    value={field.value || rows[0]}
+                    onValueChange={(value) => field.onChange(value)}
+                    defaultValue={rows[0]}
+                  >
+                    <SelectTrigger className="h-12 text-lg">
+                      <SelectValue placeholder={rows[0]} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rows.map((r) => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={addForm.control}
+            name="storageDeck"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg">Deck</FormLabel>
+                <FormControl>
+                  <Select
+                    value={field.value || decks[0]}
+                    onValueChange={(value) => field.onChange(value)}
+                    defaultValue={decks[0]}
+                  >
+                    <SelectTrigger className="h-12 text-lg">
+                      <SelectValue placeholder={decks[0]} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {decks.map((d) => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         {/* Opening Quantity Field */}
         <FormField
           control={addForm.control}
@@ -462,25 +568,6 @@ export default function Inventory() {
                   type="number"
                   step="0.001"
                   placeholder="Enter opening quantity"
-                  {...field}
-                  className="h-12 text-lg"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Expiry Date Field */}
-        <FormField
-          control={addForm.control}
-          name="expiryDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-lg">Expiry Date</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
                   {...field}
                   className="h-12 text-lg"
                 />
