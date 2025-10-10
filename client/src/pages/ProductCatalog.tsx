@@ -26,7 +26,15 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string; expiryDate: string }>({ name: "", unit: "", currentStock: "", openingStock: "", expiryDate: "" });
+  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string; storageLocation?: string; storageRow?: string; storageDeck?: string }>({
+    name: "",
+    unit: "",
+    currentStock: "",
+    openingStock: "",
+    storageLocation: "",
+    storageRow: "",
+    storageDeck: "",
+  });
   const queryClient = useQueryClient();
 
   const {
@@ -39,7 +47,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
 
   // Mutation for updating product
   const updateProductMutation = useMutation({
-    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string; expiryDate: string }) => {
+    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string; storageLocation?: string; storageRow?: string; storageDeck?: string }) => {
       const res = await fetch(`/api/products/${editProduct?.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -254,9 +262,9 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                 <tr className="text-gray-700 text-xs uppercase tracking-wide">
                   <th className="p-3 md:p-4 border-b border-gray-200">Name</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Unit</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Location</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Current Stock</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Opening Stock</th>
-                  <th className="p-3 md:p-4 border-b border-gray-200">Expiry Date</th> {/* New */}
                   <th className="p-3 md:p-4 border-b border-gray-200">Status</th>
                   <th className="p-3 md:p-4 border-b border-gray-200 text-right">Actions</th>
                 </tr>
@@ -270,14 +278,20 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                       <td className="p-3 md:p-4 border-b border-gray-100">
                         <Badge variant="outline" className="text-xs">{product.unit}</Badge>
                       </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-sm text-gray-600">
+                        {((product as any).storageLocation || "-")}
+                        {((product as any).storageRow || (product as any).storageDeck) && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            {(product as any).storageRow ? `Row: ${(product as any).storageRow}` : ""}
+                            {(product as any).storageDeck ? (product as any).storageRow ? ` • Deck: ${(product as any).storageDeck}` : `Deck: ${(product as any).storageDeck}` : ""}
+                          </div>
+                        )}
+                      </td>
                       <td className="p-3 md:p-4 border-b border-gray-100">
                         {formatStock(product.currentStock)} {product.unit}
                       </td>
                       <td className="p-3 md:p-4 border-b border-gray-100 text-gray-500">
                         {formatStock(product.openingStock)} {product.unit}
-                      </td>
-                      <td className="p-3 md:p-4 border-b border-gray-100 text-gray-500">
-                        {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString() : "-"}
                       </td>
                       <td className="p-3 md:p-4 border-b border-gray-100">
                         <Badge variant="secondary" className={`${stockStatus.color} text-white text-xs`}>
@@ -295,7 +309,9 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                               unit: product.unit,
                               currentStock: product.currentStock,
                               openingStock: product.openingStock,
-                              expiryDate: product.expiryDate || "",
+                              storageLocation: (product as any).storageLocation || "",
+                              storageRow: (product as any).storageRow || "",
+                              storageDeck: (product as any).storageDeck || "",
                             });
                           }}
                         >
@@ -343,12 +359,23 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                 value={editForm.openingStock}
                 onChange={e => setEditForm(f => ({ ...f, openingStock: e.target.value }))}
               />
-              <Label htmlFor="edit-expiryDate">Expiry Date</Label>
+              <Label htmlFor="edit-storageLocation">Storage Location</Label>
               <Input
-                id="edit-expiryDate"
-                type="date"
-                value={editForm.expiryDate}
-                onChange={e => setEditForm(f => ({ ...f, expiryDate: e.target.value }))}
+                id="edit-storageLocation"
+                value={editForm.storageLocation}
+                onChange={e => setEditForm(f => ({ ...f, storageLocation: e.target.value }))}
+              />
+              <Label htmlFor="edit-storageRow">Storage Row</Label>
+              <Input
+                id="edit-storageRow"
+                value={editForm.storageRow}
+                onChange={e => setEditForm(f => ({ ...f, storageRow: e.target.value }))}
+              />
+              <Label htmlFor="edit-storageDeck">Storage Deck</Label>
+              <Input
+                id="edit-storageDeck"
+                value={editForm.storageDeck}
+                onChange={e => setEditForm(f => ({ ...f, storageDeck: e.target.value }))}
               />
             </div>
             <DialogFooter>
@@ -360,21 +387,23 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                       unit: editForm.unit,
                       openingStock: editForm.openingStock,
                       currentStock: editForm.currentStock,
-                      expiryDate: editForm.expiryDate, // Add this
-                    });
-                  }
-                }}
-                disabled={updateProductMutation.isPending}
-              >
-                Save
-              </Button>
-              <Button variant="ghost" onClick={() => setEditProduct(null)}>
-                Cancel
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </div>
-  );
+                      storageLocation: editForm.storageLocation,
+                      storageRow: editForm.storageRow,
+                      storageDeck: editForm.storageDeck,
+                     });
+                   }
+                 }}
+                 disabled={updateProductMutation.isPending}
+               >
+                 Save
+               </Button>
+               <Button variant="ghost" onClick={() => setEditProduct(null)}>
+                 Cancel
+               </Button>
+             </DialogFooter>
+           </DialogContent>
+         </Dialog>
+       </div>
+     </div>
+   );
 }
