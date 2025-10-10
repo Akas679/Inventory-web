@@ -35,6 +35,8 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
+  countryCode: varchar("country_code", { length: 10 }), // e.g., +91, +1, etc.
+  mobileNumber: varchar("mobile_number", { length: 20 }), // Mobile number without country code
   role: varchar("role", { length: 30 }), // Legacy single role field - nullable for pending users
   roles: json("roles").$type<UserRole[]>().notNull().default([]), // New multiple roles field
   isActive: integer("is_active").notNull().default(1),
@@ -46,14 +48,33 @@ export const users = pgTable("users", {
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  unit: varchar("unit", { length: 50 }).notNull(),
-  openingStock: varchar("opening_stock", { length: 50 }).notNull(),
-  currentStock: varchar("current_stock", { length: 50 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(), // KG, Litre, Pieces, etc.
+  openingStock: decimal("opening_stock", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
+  currentStock: decimal("current_stock", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
+
+  // Storage/location fields to match Inventory.tsx form
+  storageLocation: varchar("storage_location", { length: 100 })
+    .notNull()
+    .default("Dry Storage Location"),
+  storageRow: varchar("storage_row", { length: 50 })
+    .notNull()
+    .default("Row 1"),
+  storageDeck: varchar("storage_deck", { length: 50 })
+    .notNull()
+    .default("Deck 1"),
+
   isActive: integer("is_active").notNull().default(1),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  expiryDate: date("expiry_date"), // <-- Add this line
-});
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_products_name").on(table.name),
+  index("idx_products_active").on(table.isActive),
+  index("idx_products_storage_location").on(table.storageLocation),
+]);
 
 // Stock transactions table
 export const stockTransactions = pgTable("stock_transactions", {
@@ -78,7 +99,15 @@ export const stockTransactions = pgTable("stock_transactions", {
   soNumber: varchar("so_number", { length: 100 }),
   poNumber: varchar("po_number", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_stock_transactions_product_id").on(table.productId),
+  index("idx_stock_transactions_user_id").on(table.userId),
+  index("idx_stock_transactions_type").on(table.type),
+  index("idx_stock_transactions_date").on(table.transactionDate),
+  index("idx_stock_transactions_created_at").on(table.createdAt),
+  index("idx_stock_transactions_product_type").on(table.productId, table.type),
+  index("idx_stock_transactions_date_type").on(table.transactionDate, table.type)
+]);
 
 // Weekly stock plans table
 export const weeklyStockPlans = pgTable("weekly_stock_plans", {
@@ -257,6 +286,7 @@ export const stockOutSchema = insertStockTransactionSchema
 
 export const updateProductSchema = createInsertSchema(products)
   .omit({
+    currentStock: true,
     isActive: true,
     createdAt: true,
     updatedAt: true,
@@ -285,17 +315,7 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Product = {
-  id: number;
-  name: string;
-  unit: string;
-  openingStock: string;
-  currentStock: string;
-  isActive: number;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  expiryDate?: string | null; // <-- Add this line
-};
+export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type UpdateProduct = z.infer<typeof updateProductSchema>;
 export type StockTransaction = typeof stockTransactions.$inferSelect;
