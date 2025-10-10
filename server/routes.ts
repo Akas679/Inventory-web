@@ -9,11 +9,14 @@ import {
   loginSchema,
   type UserRole,
   hasUserAnyRole,
+  users,
 } from "@shared/schema";
 import { dashboardQueries } from "./queries";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import axios from "axios";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // CAPTCHA verification helper function
 async function verifyCaptcha(token: string): Promise<boolean> {
@@ -31,8 +34,7 @@ async function verifyCaptcha(token: string): Promise<boolean> {
       'https://www.google.com/recaptcha/api/siteverify',
       null,
       {
-        params:
-         {
+        params: {
           secret: process.env.RECAPTCHA_SECRET_KEY,
           response: token
         }
@@ -172,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public registration endpoint
   app.post("/api/register", async (req, res) => {
     try {
-      const { username, password, email, firstName, lastName, captchaToken } = req.body;
+      const { username, password, email, firstName, lastName, countryCode, mobileNumber, captchaToken } = req.body;
 
       // Verify CAPTCHA token
       if (!captchaToken) {
@@ -218,6 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         firstName,
         lastName,
+        countryCode,
+        mobileNumber,
         role: "stock_in_manager", // Temporary default for schema - will be ignored if roles array is empty
         roles: [], // Empty roles - awaiting admin assignment
       });
@@ -428,7 +432,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: "stock_in",
             remarks,
             poNumber,
-            expiryDate: productData.expiryDate, // <-- Add this line
             transactionDate: new Date(),
           };
 
@@ -462,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
       try {
         const userId = req.user.id;
-        const { originalQuantity, originalUnit, expiryDate, ...transactionBody } = req.body; // <-- Add expiryDate here
+        const { originalQuantity, originalUnit, ...transactionBody } = req.body;
         const transactionData = insertStockTransactionSchema.parse({
           ...transactionBody,
           userId,
@@ -474,7 +477,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...transactionData,
           originalQuantity,
           originalUnit,
-          expiryDate, // <-- Pass expiryDate to storage
           transactionDate: new Date(),
         };
 
@@ -1000,17 +1002,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { weeklyStockPlanQueries } = await import("./queries");
         const userId = req.user.id;
 
+        console.log("Creating weekly stock plan with userId:", userId);
+        console.log("User object:", req.user);
+        console.log("Request body:", JSON.stringify(req.body, null, 2));
+
+        // Verify user exists before proceeding
+        try {
+          const userExists = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          console.log("User exists check result:", userExists);
+          
+          if (userExists.length === 0) {
+            return res.status(400).json({
+              message: "User not found",
+              userId: userId
+            });
+          }
+        } catch (userCheckError) {
+          console.error("Error checking user existence:", userCheckError);
+          return res.status(500).json({
+            message: "Database error while validating user",
+            error: userCheckError instanceof Error ? userCheckError.message : "Unknown error"
+          });
+        }
+
         // Accept both single object and array
         const plans = Array.isArray(req.body) ? req.body : [req.body];
 
         // Validate and add userId and name to each plan
-        const parsedPlans = plans.map((plan: any) =>
-          insertWeeklyStockPlanSchema.parse({ ...plan, userId, name: plan.name })
-        );
+        const parsedPlans = plans.map((plan: any) => {
+          const planWithUser = { ...plan, userId, name: plan.name };
+          console.log("Plan before validation:", planWithUser);
+          return insertWeeklyStockPlanSchema.parse(planWithUser);
+        });
+
+        console.log("Parsed plans:", parsedPlans);
 
         // Insert all plans
         const createdPlans = [];
         for (const plan of parsedPlans) {
+          console.log("Creating plan:", plan);
           const created = await weeklyStockPlanQueries.create(plan);
           createdPlans.push(created);
         }
